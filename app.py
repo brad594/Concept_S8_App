@@ -34,7 +34,7 @@ model = genai.GenerativeModel(
     tools=[search_job, get_job_info]
 )
 
-# 5. CHAT LOGIC
+# 5. CHAT LOGIC (With Safety Switch)
 if "chat" not in st.session_state:
     st.session_state.chat = model.start_chat(enable_automatic_function_calling=True)
 
@@ -42,8 +42,11 @@ user_input = st.text_input("Ask about an address or job:", placeholder="e.g. Sta
 
 if user_input:
     with st.spinner('Checking ServiceM8...'):
-        response = st.session_state.chat.send_message(user_input)
-        st.markdown(response.text)
-
-st.divider()
-st.caption("Brad's ServiceM8 Assistant")
+        try:
+            response = st.session_state.chat.send_message(user_input)
+            st.markdown(response.text)
+        except Exception as e:
+            if "429" in str(e) or "ResourceExhausted" in str(e):
+                st.error("🚦 **Rate Limit Hit:** The AI is cooling down. Please wait 60 seconds and try again.")
+            else:
+                st.error(f"⚠️ **Connection Error:** {str(e)}")
